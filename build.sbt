@@ -259,7 +259,7 @@ lazy val chipyard = {
   cy
 }
 
-lazy val rvdla = freshProject("rvdla", file("generators/rvdla"))
+lazy val rvdla = withInitCheck(freshProject("rvdla", file("generators/rvdla")), "rvdla")
   .dependsOn(testchipip, rocketchip, boom)
   .settings(libraryDependencies ++= rocketLibDeps.value)
   .settings(commonSettings)
