@@ -52,6 +52,7 @@ VCS_NONCC_OPTS = \
 	+v2k +verilog2001ext+.v95+.vt+.vp +libext+.v \
 	-debug_pp \
 	-top $(TB) \
+	+define+SIM \
 	+incdir+$(GEN_COLLATERAL_DIR) \
 	$(addprefix +incdir+,$(EXT_INCDIRS))
 

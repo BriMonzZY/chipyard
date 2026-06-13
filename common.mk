@@ -305,15 +305,29 @@ $(MODEL_SMEMS_FILE) $(MODEL_SMEMS_FIR) &: $(TAPEOUT_CLASSPATH) $(MODEL_SMEMS_CON
 # note: {MODEL,TOP}_BB_MODS_FILELIST is added as a req. so that the files get generated,
 #       however it is really unneeded since ALL_MODS_FILELIST includes all BB files
 ########################################################################################
+# $(sim_common_files): $(sim_files) $(ALL_MODS_FILELIST) $(TOP_SMEMS_FILE) $(MODEL_SMEMS_FILE) $(BB_MODS_FILELIST) $(EXT_FILELISTS)
+# ifneq (,$(EXT_FILELISTS))
+# 	cat $(EXT_FILELISTS) > $@
+# else
+# 	rm -f $@
+# endif
+# 	sort -u $(sim_files) $(ALL_MODS_FILELIST) | grep -v '.*\.\(svh\|h\|conf\)$$' >> $@
+# 	echo "$(TOP_SMEMS_FILE)" >> $@
+# 	echo "$(MODEL_SMEMS_FILE)" >> $@
+
+## filelist中先列出带有pkg的文件
 $(sim_common_files): $(sim_files) $(ALL_MODS_FILELIST) $(TOP_SMEMS_FILE) $(MODEL_SMEMS_FILE) $(BB_MODS_FILELIST) $(EXT_FILELISTS)
 ifneq (,$(EXT_FILELISTS))
 	cat $(EXT_FILELISTS) > $@
 else
 	rm -f $@
 endif
-	sort -u $(sim_files) $(ALL_MODS_FILELIST) | grep -v '.*\.\(svh\|h\|conf\)$$' >> $@
+	sort -u $(sim_files) $(ALL_MODS_FILELIST) | grep -v '.*\.\(svh\|h\)$$' | \
+		awk -F/ '{ file=$$NF; if (tolower(file) ~ /pkg/) pkg[++npkg]=$$0; else rest[++nrest]=$$0 } \
+			END { for (i=1; i<=npkg; i++) print pkg[i]; for (i=1; i<=nrest; i++) print rest[i] }' >> $@
 	echo "$(TOP_SMEMS_FILE)" >> $@
 	echo "$(MODEL_SMEMS_FILE)" >> $@
+
 
 #########################################################################################
 # helper rule to just make verilog files

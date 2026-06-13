@@ -18,6 +18,10 @@ class WithSystemBusWidth(bitWidth: Int) extends Config((site, here, up) => {
   case SystemBusKey => up(SystemBusKey, site).copy(beatBytes=bitWidth/8)
 })
 
+class WithMemoryBusWidth(bitWidth: Int) extends Config((site, here, up) => {
+  case MemoryBusKey => up(MemoryBusKey, site).copy(beatBytes=bitWidth/8)
+})
+
 class WithInclusiveCacheWriteBytes(b: Int) extends Config((site, here, up) => {
   case InclusiveCacheKey => up(InclusiveCacheKey).copy(writeBytes = b)
 })

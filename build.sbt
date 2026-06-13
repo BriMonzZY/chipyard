@@ -232,7 +232,8 @@ lazy val chipyard = {
     "caliptra-aes-acc" -> caliptra_aes,
     "compress-acc" -> compressacc,
     "mempress" -> mempress,
-    "fft-generator" -> fft_generator
+    "fft-generator" -> fft_generator,
+    "rvdla" -> rvdla
   )
 
   // Discover optional modules if their submodule is initialized
@@ -257,6 +258,13 @@ lazy val chipyard = {
 
   cy
 }
+
+lazy val rvdla = freshProject("rvdla", file("generators/rvdla"))
+  .dependsOn(testchipip, rocketchip, boom)
+  .settings(libraryDependencies ++= rocketLibDeps.value)
+  .settings(commonSettings)
+  .settings(libraryDependencies ++= Seq("edu.berkeley.cs" %% "chiseltest" % "0.6.2" % "test"))
+
 
 lazy val compressacc = withInitCheck((project in file("generators/compress-acc")), "compress-acc")
   .dependsOn(rocketchip)
