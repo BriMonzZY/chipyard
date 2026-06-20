@@ -135,6 +135,10 @@ class WithPhysicalPortPunchthrough extends HarnessBinder({
     val top = IO(chiselTypeOf(port.io)).suggestName(s"axi4_mmio_${chipId}")
     top <> port.io
   }
+  case (th: PhysicalTestHarnessImp, port: AXI4PBusPort, chipId: Int) => {
+    val top = IO(chiselTypeOf(port.io)).suggestName(s"axi4_pbus_${chipId}")
+    top <> port.io
+  }
   case (th: PhysicalTestHarnessImp, port: AXI4InPort, chipId: Int) => {
     val top = IO(chiselTypeOf(port.io)).suggestName(s"axi4_fbus_${chipId}")
     top <> port.io

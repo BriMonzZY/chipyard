@@ -8,10 +8,13 @@ package chipyard
 import chisel3._
 
 import org.chipsalliance.cde.config.{Parameters, Field}
+import org.chipsalliance.diplomacy.lazymodule.InModuleBody
 import freechips.rocketchip.subsystem._
 import freechips.rocketchip.tilelink._
 import freechips.rocketchip.devices.tilelink._
 import freechips.rocketchip.diplomacy._
+import freechips.rocketchip.amba.axi4._
+import freechips.rocketchip.resources.SimpleBus
 import freechips.rocketchip.util.{DontTouch}
 
 // ---------------------------------------------------------------------
@@ -26,6 +29,7 @@ class ChipyardSystem(implicit p: Parameters) extends ChipyardSubsystem
   with CanHaveMasterTLMemPort // export TL port for outer memory
   with CanHaveMasterAXI4MemPort // expose AXI port for outer mem
   with CanHaveMasterAXI4MMIOPort
+  with CanHaveMasterAXI4PBusPort
   with CanHaveSlaveAXI4Port
 {
 
@@ -49,6 +53,9 @@ class ChipyardSystemModule(_outer: ChipyardSystem) extends ChipyardSubsystemModu
 
 // Similar to ExtMem but instantiates a TL mem port
 case object ExtTLMem extends Field[Option[MemoryPortParams]](None)
+
+// Physical harness PBUS AXI4 master port
+case object ExtPBusAXI4 extends Field[Option[MasterPortParams]](None)
 
 /** Adds a port to the system intended to master an TL DRAM controller. */
 trait CanHaveMasterTLMemPort { this: BaseSubsystem =>
@@ -90,4 +97,39 @@ trait CanHaveMasterTLMemPort { this: BaseSubsystem =>
   }
 
   val mem_tl = InModuleBody { memTLNode.makeIOs() }
+}
+
+/** Adds an AXI4 port from PBUS, with the SoC acting as AXI4 master. */
+trait CanHaveMasterAXI4PBusPort { this: BaseSubsystem =>
+  private val pbusPortParamsOpt = p(ExtPBusAXI4)
+  private val portName = "pbus_axi4"
+  private val device = new SimpleBus("pbus-axi4", Nil)
+  private lazy val pbus = locateTLBusWrapper(PBUS)
+
+  val pbusAXI4Node = AXI4SlaveNode(
+    pbusPortParamsOpt.map(params =>
+      AXI4SlavePortParameters(
+        slaves = Seq(AXI4SlaveParameters(
+          address       = AddressSet.misaligned(params.base, params.size),
+          resources     = device.ranges,
+          regionType    = RegionType.UNCACHED,
+          executable    = params.executable,
+          supportsWrite = TransferSizes(1, params.maxXferBytes),
+          supportsRead  = TransferSizes(1, params.maxXferBytes))),
+        beatBytes = params.beatBytes)).toSeq)
+
+  pbusPortParamsOpt.foreach { params =>
+    pbus.coupleTo(s"port_named_$portName") {
+      (pbusAXI4Node
+        := AXI4Buffer()
+        := AXI4UserYanker()
+        := AXI4Deinterleaver(pbus.blockBytes)
+        := AXI4IdIndexer(params.idBits)
+        := TLToAXI4(adapterName = Some("pbus"))
+        := TLWidthWidget(pbus.beatBytes)
+        := _)
+    }
+  }
+
+  val pbus_axi4 = InModuleBody { pbusAXI4Node.makeIOs() }
 }

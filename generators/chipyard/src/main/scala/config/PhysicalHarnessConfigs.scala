@@ -3,8 +3,9 @@ package chipyard.config
 import sys.process._
 
 import org.chipsalliance.cde.config.Config
+import chipyard.ExtPBusAXI4
 import freechips.rocketchip.devices.tilelink.BootROMLocated
-import freechips.rocketchip.subsystem.SystemBusKey
+import freechips.rocketchip.subsystem.{MasterPortParams, PeripheryBusKey, SystemBusKey}
 import freechips.rocketchip.util.SystemFileName
 import sifive.blocks.devices.spi.{PeripherySPIKey, SPIParams}
 import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTParams}
@@ -33,6 +34,19 @@ class WithPhysicalSdbootBootROM extends Config((site, here, up) => {
   }
 })
 
+class WithPhysicalPBusAXI4MasterPort(
+  base: BigInt = BigInt(0x70000000L),
+  size: BigInt = BigInt(0x10000000L),
+  idBits: Int = 4) extends Config((site, here, up) => {
+  case ExtPBusAXI4 => Some(MasterPortParams(
+    base = base,
+    size = size,
+    beatBytes = site(PeripheryBusKey).beatBytes,
+    idBits = idBits,
+    maxXferBytes = site(PeripheryBusKey).blockBytes,
+    executable = false))
+})
+
 class WithPhysicalHarness(freqMHz: Double = 100.0, memSize: BigInt = BigInt(1) << 30) extends Config(
   new chipyard.harness.WithPhysicalHarnessBinders ++
   new chipyard.harness.WithAllClocksFromHarnessClockInstantiator ++
@@ -41,6 +55,7 @@ class WithPhysicalHarness(freqMHz: Double = 100.0, memSize: BigInt = BigInt(1) <
   new chipyard.config.WithUniformBusFrequencies(freqMHz) ++
   new chipyard.config.WithTLBackingMemory ++
   new freechips.rocketchip.subsystem.WithExtMemSize(memSize) ++
+  new WithPhysicalPBusAXI4MasterPort ++
   new WithPhysicalSdbootPeripherals ++
   new WithPhysicalSdbootBootROM ++
   new Config((site, here, up) => {

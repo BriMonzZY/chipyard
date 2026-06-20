@@ -61,6 +61,9 @@ case class AXI4MemPort     (val getIO: () => ClockedIO[AXI4Bundle], val params: 
 case class AXI4MMIOPort    (val getIO: () => ClockedIO[AXI4Bundle], val params: MasterPortParams, val edge: AXI4EdgeParameters)
     extends Port[ClockedIO[AXI4Bundle]]
 
+case class AXI4PBusPort    (val getIO: () => ClockedIO[AXI4Bundle], val params: MasterPortParams, val edge: AXI4EdgeParameters)
+    extends Port[ClockedIO[AXI4Bundle]]
+
 case class AXI4InPort      (val getIO: () => ClockedIO[AXI4Bundle], val params: SlavePortParams)
     extends Port[ClockedIO[AXI4Bundle]]
 

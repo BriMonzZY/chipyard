@@ -39,7 +39,7 @@ import testchipip.cosim.{CanHaveTraceIO, TraceOutputTop, SpikeCosimConfig}
 import testchipip.tsi.{CanHavePeripheryUARTTSI, UARTTSIIO}
 import testchipip.ctc.{CanHavePeripheryCTC}
 import icenet.{CanHavePeripheryIceNIC, SimNetwork, NicLoopback, NICKey, NICIOvonly}
-import chipyard.{CanHaveMasterTLMemPort, ChipyardSystem, ChipyardSystemModule}
+import chipyard.{CanHaveMasterAXI4PBusPort, CanHaveMasterTLMemPort, ExtPBusAXI4, ChipyardSystem, ChipyardSystemModule}
 import chipyard.example.{CanHavePeripheryGCD}
 
 import scala.reflect.{ClassTag}
@@ -421,6 +421,26 @@ class WithAXI4MMIOPunchthrough extends OverrideLazyIOBinder({
         port.bits <> m
         port.clock := clockBundle.clock
         AXI4MMIOPort(() => port, p(ExtBus).get, system.mmioAXI4Node.edges.in(i))
+      }).toSeq
+      (ports, Nil)
+    }
+  }
+})
+
+class WithPBusAXI4Punchthrough extends OverrideLazyIOBinder({
+  (system: CanHaveMasterAXI4PBusPort) => {
+    implicit val p: Parameters = GetSystemParameters(system)
+    val clockSinkNode = p(ExtPBusAXI4).map(_ => ClockSinkNode(Seq(ClockSinkParameters())))
+    val pbus = system.asInstanceOf[HasTileLinkLocations].locateTLBusWrapper(PBUS)
+    clockSinkNode.map(_ := pbus.fixedClockNode)
+    def clockBundle = clockSinkNode.get.in.head._1
+
+    InModuleBody {
+      val ports: Seq[AXI4PBusPort] = system.pbus_axi4.zipWithIndex.map({ case (m, i) =>
+        val port = IO(new ClockedIO(DataMirror.internal.chiselTypeClone[AXI4Bundle](m))).suggestName(s"axi4_pbus_${i}")
+        port.bits <> m
+        port.clock := clockBundle.clock
+        AXI4PBusPort(() => port, p(ExtPBusAXI4).get, system.pbusAXI4Node.edges.in(i))
       }).toSeq
       (ports, Nil)
     }
