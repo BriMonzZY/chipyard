@@ -124,3 +124,7 @@ class AsyncResetRocketConfig extends Config(
     ("uncore", Seq("sbus", "mbus", "pbus", "fbus", "cbus", "obus", "implicit", "clock_tap"), Seq("tile")),
   ) ++
   new MulticlockRocketConfig)
+
+class PhysicalSdbootRocketConfig extends Config(
+  new chipyard.config.WithPhysicalHarness(freqMHz = 100.0, memSize = BigInt(1) << 30) ++
+  new chipyard.RocketConfig)
