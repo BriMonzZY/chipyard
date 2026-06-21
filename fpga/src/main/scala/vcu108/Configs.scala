@@ -1,4 +1,15 @@
-package chipyard.fpga.vcu118
+package chipyard.fpga.vcu108
+
+// import chipyard.DefaultClockFrequencyKey
+// import freechips.rocketchip.config.Config
+// import freechips.rocketchip.devices.tilelink.BootROMLocated
+// import freechips.rocketchip.diplomacy.DTSTimebase
+// import freechips.rocketchip.subsystem.ExtMem
+// import sifive.blocks.devices.spi.{PeripherySPIKey, SPIParams}
+// import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTParams}
+// import sifive.fpgashells.shell.xilinx.{VCU108DDRSize, VCU108ShellPMOD}
+// import testchipip.SerialTLKey
+// import scala.sys.process._
 
 import sys.process._
 
@@ -6,15 +17,14 @@ import org.chipsalliance.cde.config.{Config, Parameters}
 import freechips.rocketchip.subsystem.{SystemBusKey, PeripheryBusKey, ControlBusKey, ExtMem}
 import freechips.rocketchip.devices.debug.{DebugModuleKey, ExportDebug, JTAG}
 import freechips.rocketchip.devices.tilelink.{DevNullParams, BootROMLocated}
-import freechips.rocketchip.diplomacy.{RegionType, AddressSet}
-import freechips.rocketchip.resources.{DTSModel, DTSTimebase}
-import freechips.rocketchip.util.{SystemFileName}
+import freechips.rocketchip.diplomacy.{DTSModel, DTSTimebase, RegionType, AddressSet}
+import freechips.rocketchip.tile.{XLen}
 
 import sifive.blocks.devices.spi.{PeripherySPIKey, SPIParams}
 import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTParams}
 
 import sifive.fpgashells.shell.{DesignKey}
-import sifive.fpgashells.shell.xilinx.{VCU118ShellPMOD, VCU118DDRSize}
+import sifive.fpgashells.shell.xilinx.{VCU108DDRSize, VCU108ShellPMOD, VCU108ShellPMOD2}
 
 import testchipip.serdes.{SerialTLKey}
 
@@ -24,7 +34,8 @@ import chipyard.harness._
 class WithDefaultPeripherals extends Config((site, here, up) => {
   case PeripheryUARTKey => List(UARTParams(address = BigInt(0x64000000L)))
   case PeripherySPIKey => List(SPIParams(rAddress = BigInt(0x64001000L)))
-  case VCU118ShellPMOD => "SDIO"
+  case VCU108ShellPMOD => "SDIO"
+  case VCU108ShellPMOD2 => "PMODJ53_JTAG"
 })
 
 class WithSystemModifications extends Config((site, here, up) => {
@@ -34,45 +45,57 @@ class WithSystemModifications extends Config((site, here, up) => {
     val freqMHz = (site(SystemBusKey).dtsFrequency.get / (1000 * 1000)).toLong
     val make = s"make -C fpga/src/main/resources/vcu118/sdboot PBUS_CLK=${freqMHz} bin"
     require (make.! == 0, "Failed to build bootrom")
-    p.copy(hang = 0x10000, contentFileName = SystemFileName(s"./fpga/src/main/resources/vcu118/sdboot/build/sdboot.bin"))
+    p.copy(hang = 0x10000, contentFileName = s"./fpga/src/main/resources/vcu118/sdboot/build/sdboot.bin")
   }
-  case ExtMem => up(ExtMem, site).map(x => x.copy(master = x.master.copy(size = site(VCU118DDRSize)))) // set extmem to DDR size
+  case ExtMem => up(ExtMem, site).map(x => x.copy(master = x.master.copy(size = site(VCU108DDRSize)))) // set extmem to DDR size
   case SerialTLKey => Nil // remove serialized tl port
 })
 
-// DOC include start: AbstractVCU118 and Rocket
-class WithVCU118Tweaks extends Config(
+// DOC include start: AbstractVCU108 and Rocket
+class WithVCU108Tweaks extends Config(
   // clocking
   new chipyard.harness.WithAllClocksFromHarnessClockInstantiator ++
   new chipyard.clocking.WithPassthroughClockGenerator ++
-  new chipyard.config.WithUniformBusFrequencies(100) ++
+  new chipyard.config.WithMemoryBusFrequency(100) ++
+  new chipyard.config.WithSystemBusFrequency(100) ++
+  new chipyard.config.WithControlBusFrequency(100) ++
+  new chipyard.config.WithPeripheryBusFrequency(100) ++
+  new chipyard.config.WithControlBusFrequency(100) ++
   new WithFPGAFrequency(100) ++ // default 100MHz freq
   // harness binders
   new WithUART ++
   new WithSPISDCard ++
   new WithDDRMem ++
-  new WithJTAG ++
+  // new WithJTAG ++ // enable JTAG interface
   // other configuration
   new WithDefaultPeripherals ++
   new chipyard.config.WithTLBackingMemory ++ // use TL backing memory
   new WithSystemModifications ++ // setup busses, use sdboot bootrom, setup ext. mem. size
+  new chipyard.config.WithNoDebug ++ // remove debug module
   new freechips.rocketchip.subsystem.WithoutTLMonitors ++
   new freechips.rocketchip.subsystem.WithNMemoryChannels(1)
 )
 
-class RocketVCU118Config extends Config(
-  new WithVCU118Tweaks ++
-  new chipyard.RocketConfig
-)
-// DOC include end: AbstractVCU118 and Rocket
+class RocketVCU108Config extends Config(
+  new WithVCU108Tweaks ++
+  new chipyard.RocketConfig)
+// DOC include end: AbstractVCU108 and Rocket
 
-class BoomVCU118Config extends Config(
+
+class SmallRocketVCU108Config extends Config(
+  new WithVCU108Tweaks ++
+  new freechips.rocketchip.subsystem.WithNSmallCores(1) ++
+  new chipyard.config.AbstractConfig)
+
+
+class BoomVCU108Config extends Config(
   new WithFPGAFrequency(50) ++
-  new WithVCU118Tweaks ++
-  new chipyard.MegaBoomV3Config
-)
+  new WithVCU108Tweaks ++
+  new chipyard.SmallBoomConfig)
 
 class WithFPGAFrequency(fMHz: Double) extends Config(
+  // new chipyard.config.WithPeripheryBusFrequency(fMHz) ++ // assumes using PBUS as default freq.
+  // new chipyard.config.WithMemoryBusFrequency(fMHz)
   new chipyard.harness.WithHarnessBinderClockFreqMHz(fMHz) ++
   new chipyard.config.WithSystemBusFrequency(fMHz) ++
   new chipyard.config.WithPeripheryBusFrequency(fMHz) ++
@@ -87,14 +110,18 @@ class WithFPGAFreq75MHz extends WithFPGAFrequency(75)
 class WithFPGAFreq100MHz extends WithFPGAFrequency(100)
 
 
-class RVDLARocketVCU118Config extends Config(
-  new WithFPGAFrequency(100) ++
-  new WithVCU118Tweaks ++
-  new chipyard.RVDLARocketConfig
-)
+class Rocket4VCU108Config extends Config(
+  new WithVCU108Tweaks ++
+  new freechips.rocketchip.subsystem.WithNBigCores(4) ++         // 4 rocket-core
+  new chipyard.config.AbstractConfig)
+
+class Rocket32VCU108Config extends Config(
+  new WithVCU108Tweaks ++
+  new freechips.rocketchip.subsystem.WithNBigCores(32) ++         // 32 rocket-core
+  new chipyard.config.AbstractConfig)
 
 class REFV256D256ShuttleVCU118Config extends Config(
   new WithFPGAFrequency(100) ++
-  new WithVCU118Tweaks ++
+  new WithVCU108Tweaks ++
   new chipyard.REFV256D256ShuttleConfig
 )

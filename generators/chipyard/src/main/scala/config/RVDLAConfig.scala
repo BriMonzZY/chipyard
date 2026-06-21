@@ -1,6 +1,7 @@
 package chipyard
 
 import org.chipsalliance.cde.config.{Config}
+import saturn.common.VectorParams
 
 
 // class RVDLARocketConfig extends Config(
@@ -48,10 +49,24 @@ class RVDLARocketConfig extends Config(
 
 
 // MBUS/SBUS宽度256
-class RVDLABOOMConfig extends Config(
+class RVDLASmallBoomConfig extends Config(
   new rvdla.WithRVDLA ++
-  new boom.v3.common.WithNMediumBooms(1) ++
+  new boom.v3.common.WithNSmallBooms(1) ++
   new chipyard.config.WithSystemBusWidth(256) ++
   new chipyard.config.WithMemoryBusWidth(256) ++
   new chipyard.config.WithInclusiveCacheWriteBytes(32) ++
   new chipyard.config.AbstractConfig)
+
+
+class RVDLAShuttleSaturnConfig extends Config(
+  new rvdla.WithRVDLA ++
+  new chipyard.config.WithSystemBusWidth(256) ++
+  new chipyard.config.WithMemoryBusWidth(256) ++
+  new chipyard.config.WithInclusiveCacheWriteBytes(32)++
+  new saturn.shuttle.WithShuttleVectorUnit(vLen = 256, dLen = 256, VectorParams.refParams, mLen = Option(256)) ++
+  new shuttle.common.WithTCM(address = 0x70000000L, size = 2L << 20, banks = 2) ++
+  new shuttle.common.WithShuttleTileBeatBytes(32) ++
+  new shuttle.common.WithNShuttleCores(1) ++
+  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+  new chipyard.config.AbstractConfig)
+
