@@ -1,21 +1,12 @@
 package chipyard.fpga.vcu108
 
-// import chipyard.harness.OverrideHarnessBinder
-// import chipyard.{CanHaveMasterTLMemPort, HasHarnessSignalReferences}
-// import chisel3._
-// import chisel3.experimental.BaseModule
-// import freechips.rocketchip.tilelink.TLBundle
-// import freechips.rocketchip.util.HeterogeneousBag
-// import sifive.blocks.devices.spi.{HasPeripherySPI, SPIPortIO}
-// import sifive.blocks.devices.uart.{HasPeripheryUARTModuleImp, UARTPortIO}
-
 import chisel3._
 import chisel3.experimental.{BaseModule}
 
-import freechips.rocketchip.util.{HeterogeneousBag}
+import org.chipsalliance.diplomacy.nodes.{HeterogeneousBag}
 import freechips.rocketchip.tilelink.{TLBundle}
 
-import sifive.blocks.devices.uart.{HasPeripheryUARTModuleImp, UARTPortIO}
+import sifive.blocks.devices.uart.{UARTPortIO}
 import sifive.blocks.devices.spi.{HasPeripherySPI, SPIPortIO}
 
 import chipyard._

@@ -58,15 +58,51 @@ class RVDLASmallBoomConfig extends Config(
   new chipyard.config.AbstractConfig)
 
 
+// class RVDLAShuttleSaturnConfig extends Config(
+//   new rvdla.WithRVDLA ++
+//   new chipyard.config.WithSystemBusWidth(256) ++
+//   new chipyard.config.WithMemoryBusWidth(256) ++
+//   new chipyard.config.WithInclusiveCacheWriteBytes(32)++
+//   new saturn.shuttle.WithShuttleVectorUnit(vLen = 256, dLen = 256, VectorParams.refParams, mLen = Option(256)) ++
+//   // new shuttle.common.WithTCM(address = 0x70000000L, size = 2L << 20, banks = 2) ++ // 2MB
+//   new shuttle.common.WithShuttleTileBeatBytes(32) ++
+//   new shuttle.common.WithNShuttleCores(1) ++
+//   // new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+//   new chipyard.config.AbstractConfig)
+
+
+// MBUS/SBUS宽度256，CachelineSize 512B
 class RVDLAShuttleSaturnConfig extends Config(
   new rvdla.WithRVDLA ++
+  // Shuttle 强制 useVM；512B line 下 set size 须 ≤ 4KiB → nSets ≤ 8
+  new shuttle.common.WithL1DCacheSets(8) ++
+  new shuttle.common.WithL1DCacheWays(4) ++
+  new shuttle.common.WithL1ICacheSets(8) ++
+  new shuttle.common.WithL1ICacheWays(4) ++
   new chipyard.config.WithSystemBusWidth(256) ++
   new chipyard.config.WithMemoryBusWidth(256) ++
   new chipyard.config.WithInclusiveCacheWriteBytes(32)++
   new saturn.shuttle.WithShuttleVectorUnit(vLen = 256, dLen = 256, VectorParams.refParams, mLen = Option(256)) ++
-  new shuttle.common.WithTCM(address = 0x70000000L, size = 2L << 20, banks = 2) ++
+  // new shuttle.common.WithTCM(address = 0x70000000L, size = 2L << 20, banks = 2) ++ // 2MB
   new shuttle.common.WithShuttleTileBeatBytes(32) ++
   new shuttle.common.WithNShuttleCores(1) ++
-  new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+  // new freechips.rocketchip.subsystem.WithoutTLMonitors ++
+  new freechips.rocketchip.subsystem.WithCacheBlockBytes(512) ++
   new chipyard.config.AbstractConfig)
 
+
+// MBUS/SBUS宽度256，CachelineSize 512B；Rocket + Saturn（对照 RVDLAShuttleSaturnConfig）
+class RVDLARocketSaturnConfig extends Config(
+  new rvdla.WithRVDLA ++
+  new freechips.rocketchip.rocket.WithoutVM ++ // 取消虚拟内存支持，解除 cacheset 4KiB的限制
+  new freechips.rocketchip.rocket.WithL1DCacheSets(16) ++
+  new freechips.rocketchip.rocket.WithL1DCacheWays(4) ++
+  new freechips.rocketchip.rocket.WithL1ICacheSets(16) ++
+  new freechips.rocketchip.rocket.WithL1ICacheWays(4) ++
+  new chipyard.config.WithSystemBusWidth(256) ++
+  new chipyard.config.WithMemoryBusWidth(256) ++
+  new chipyard.config.WithInclusiveCacheWriteBytes(32) ++
+  new saturn.rocket.WithRocketVectorUnit(vLen = 256, dLen = 256, VectorParams.refParams, mLen = Option(256)) ++
+  new freechips.rocketchip.rocket.WithNHugeCores(1) ++
+  new freechips.rocketchip.subsystem.WithCacheBlockBytes(512) ++
+  new chipyard.config.AbstractConfig)

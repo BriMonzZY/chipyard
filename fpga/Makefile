@@ -152,6 +152,9 @@ $(synth_list_f): $(sim_common_files) $(all_vsrcs)
 
 ifeq ($(FPGA_BRAND),xilinx)
 BIT_FILE := $(build_dir)/obj/$(MODEL).bit
+SYNTH_CHECKPOINT := $(build_dir)/obj/post_synth.dcp
+# create_project -dir obj <MODEL> writes obj/<MODEL>.xpr (Vivado 2020+)
+VIVADO_PROJECT := $(build_dir)/obj/$(MODEL).xpr
 $(BIT_FILE): $(synth_list_f)
 	cd $(build_dir); vivado \
 		-nojournal -mode batch \
@@ -160,10 +163,23 @@ $(BIT_FILE): $(synth_list_f)
 			-top-module "$(MODEL)" \
 			-F "$(synth_list_f)" \
 			-board "$(BOARD)" \
-			-ip-vivado-tcls "$(shell find '$(build_dir)' -name '*.vivado.tcl')"
+			-ip-vivado-tcls "$(shell find '$(build_dir)' -name '*.vivado.tcl')" \
+			$(if $(filter 1,$(VIVADO_SAVE_PROJECT)),-save-project,)
+# Project-mode synthesis (Design Runs). Opens cleanly in Vivado GUI for impl.
+$(SYNTH_CHECKPOINT) $(VIVADO_PROJECT): $(synth_list_f)
+	cd $(build_dir); vivado \
+		-nojournal -mode batch \
+		-source $(fpga_common_script_dir)/synth-only.tcl \
+		-tclargs \
+			-top-module "$(MODEL)" \
+			-F "$(synth_list_f)" \
+			-board "$(BOARD)" \
+			-ip-vivado-tcls "$(shell find '$(build_dir)' -name '*.vivado.tcl')" \
+			-save-project
 endif
 ifeq ($(FPGA_BRAND),altera)
 BIT_FILE := $(build_dir)/output_files/$(MODEL).qsf
+SYNTH_CHECKPOINT := $(build_dir)/output_files/$(MODEL).syn.rpt
 $(BIT_FILE): $(synth_list_f)
 	cd $(build_dir); quartus_sh \
 		-t $(fpga_common_script_dir)/quartus.tcl \
@@ -171,10 +187,26 @@ $(BIT_FILE): $(synth_list_f)
 		"$(BOARD)" \
 		"$(long_name)" \
 		"$(shell find '$(build_dir)' -name '*.quartus.tcl')"
+$(SYNTH_CHECKPOINT): $(synth_list_f)
+	cd $(build_dir); quartus_sh \
+		-t $(fpga_common_script_dir)/quartus-synth-only.tcl \
+		"$(MODEL)" \
+		"$(BOARD)" \
+		"$(long_name)" \
+		"$(shell find '$(build_dir)' -name '*.quartus.tcl')"
 endif
 
-.PHONY: bitstream
+.PHONY: bitstream synth
 bitstream: $(BIT_FILE)
+synth: $(SYNTH_CHECKPOINT)
+
+# After `make synth`, open the .xpr and continue Implementation via Design Runs.
+# open-synth opens the copied post_synth.dcp (non-project view).
+.PHONY: open-synth open-project
+open-synth: $(SYNTH_CHECKPOINT)
+	cd $(build_dir); vivado $(SYNTH_CHECKPOINT)
+open-project: $(VIVADO_PROJECT)
+	cd $(build_dir); vivado $(VIVADO_PROJECT)
 
 .PHONY: debug-bitstream
 debug-bitstream: $(build_dir)/obj/post_synth.dcp

@@ -2,14 +2,6 @@ package chipyard.fpga.vcu108
 
 import chisel3._
 
-// import freechips.rocketchip.config.Field
-// import freechips.rocketchip.diplomacy._
-// import freechips.rocketchip.tilelink.TLAsyncCrossingSink
-// import sifive.fpgashells.clocks._
-// import sifive.fpgashells.devices.xilinx.xilinxvcu118mig.{XilinxVCU118MIG, XilinxVCU118MIGPads, XilinxVCU118MIGParams}
-// import sifive.fpgashells.shell._
-// import sifive.fpgashells.shell.xilinx._
-
 import freechips.rocketchip.diplomacy._
 import org.chipsalliance.cde.config.{Parameters, Field}
 import freechips.rocketchip.tilelink.{TLInwardNode, TLAsyncCrossingSink}

@@ -1,21 +1,6 @@
 package chipyard.fpga.vcu108
 
-// import chipyard.harness.ApplyHarnessBinders
-// import chipyard.iobinders.HasIOBinders
-// import chipyard._
-// import chisel3._
-// import freechips.rocketchip.config._
-// import freechips.rocketchip.diplomacy._
-// import freechips.rocketchip.tilelink._
-// import sifive.blocks.devices.spi._
-// import sifive.blocks.devices.uart._
-// import sifive.fpgashells.clocks._
-// import sifive.fpgashells.ip.xilinx._
-// import sifive.fpgashells.shell._
-// import sifive.fpgashells.shell.xilinx._
-
 import chisel3._
-import chisel3.experimental.{IO}
 
 import freechips.rocketchip.diplomacy.{LazyModule, LazyRawModuleImp, BundleBridgeSource}
 import org.chipsalliance.cde.config.{Parameters}

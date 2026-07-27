@@ -1,24 +1,14 @@
 package chipyard.fpga.vcu108
 
-// import chipyard.DefaultClockFrequencyKey
-// import freechips.rocketchip.config.Config
-// import freechips.rocketchip.devices.tilelink.BootROMLocated
-// import freechips.rocketchip.diplomacy.DTSTimebase
-// import freechips.rocketchip.subsystem.ExtMem
-// import sifive.blocks.devices.spi.{PeripherySPIKey, SPIParams}
-// import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTParams}
-// import sifive.fpgashells.shell.xilinx.{VCU108DDRSize, VCU108ShellPMOD}
-// import testchipip.SerialTLKey
-// import scala.sys.process._
-
 import sys.process._
 
 import org.chipsalliance.cde.config.{Config, Parameters}
 import freechips.rocketchip.subsystem.{SystemBusKey, PeripheryBusKey, ControlBusKey, ExtMem}
 import freechips.rocketchip.devices.debug.{DebugModuleKey, ExportDebug, JTAG}
 import freechips.rocketchip.devices.tilelink.{DevNullParams, BootROMLocated}
-import freechips.rocketchip.diplomacy.{DTSModel, DTSTimebase, RegionType, AddressSet}
-import freechips.rocketchip.tile.{XLen}
+import freechips.rocketchip.diplomacy.{RegionType, AddressSet}
+import freechips.rocketchip.resources.{DTSModel, DTSTimebase}
+import freechips.rocketchip.util.{SystemFileName}
 
 import sifive.blocks.devices.spi.{PeripherySPIKey, SPIParams}
 import sifive.blocks.devices.uart.{PeripheryUARTKey, UARTParams}
@@ -45,7 +35,7 @@ class WithSystemModifications extends Config((site, here, up) => {
     val freqMHz = (site(SystemBusKey).dtsFrequency.get / (1000 * 1000)).toLong
     val make = s"make -C fpga/src/main/resources/vcu118/sdboot PBUS_CLK=${freqMHz} bin"
     require (make.! == 0, "Failed to build bootrom")
-    p.copy(hang = 0x10000, contentFileName = s"./fpga/src/main/resources/vcu118/sdboot/build/sdboot.bin")
+    p.copy(hang = 0x10000, contentFileName = SystemFileName(s"./fpga/src/main/resources/vcu118/sdboot/build/sdboot.bin"))
   }
   case ExtMem => up(ExtMem, site).map(x => x.copy(master = x.master.copy(size = site(VCU108DDRSize)))) // set extmem to DDR size
   case SerialTLKey => Nil // remove serialized tl port
@@ -76,26 +66,18 @@ class WithVCU108Tweaks extends Config(
   new freechips.rocketchip.subsystem.WithNMemoryChannels(1)
 )
 
-class RocketVCU108Config extends Config(
+class RocketVCU118Config extends Config(
   new WithVCU108Tweaks ++
-  new chipyard.RocketConfig)
-// DOC include end: AbstractVCU108 and Rocket
+  new chipyard.RocketConfig
+)
 
-
-class SmallRocketVCU108Config extends Config(
-  new WithVCU108Tweaks ++
-  new freechips.rocketchip.subsystem.WithNSmallCores(1) ++
-  new chipyard.config.AbstractConfig)
-
-
-class BoomVCU108Config extends Config(
+class BoomVCU118Config extends Config(
   new WithFPGAFrequency(50) ++
   new WithVCU108Tweaks ++
-  new chipyard.SmallBoomConfig)
+  new chipyard.MegaBoomV3Config
+)
 
 class WithFPGAFrequency(fMHz: Double) extends Config(
-  // new chipyard.config.WithPeripheryBusFrequency(fMHz) ++ // assumes using PBUS as default freq.
-  // new chipyard.config.WithMemoryBusFrequency(fMHz)
   new chipyard.harness.WithHarnessBinderClockFreqMHz(fMHz) ++
   new chipyard.config.WithSystemBusFrequency(fMHz) ++
   new chipyard.config.WithPeripheryBusFrequency(fMHz) ++
@@ -108,17 +90,6 @@ class WithFPGAFreq25MHz extends WithFPGAFrequency(25)
 class WithFPGAFreq50MHz extends WithFPGAFrequency(50)
 class WithFPGAFreq75MHz extends WithFPGAFrequency(75)
 class WithFPGAFreq100MHz extends WithFPGAFrequency(100)
-
-
-class Rocket4VCU108Config extends Config(
-  new WithVCU108Tweaks ++
-  new freechips.rocketchip.subsystem.WithNBigCores(4) ++         // 4 rocket-core
-  new chipyard.config.AbstractConfig)
-
-class Rocket32VCU108Config extends Config(
-  new WithVCU108Tweaks ++
-  new freechips.rocketchip.subsystem.WithNBigCores(32) ++         // 32 rocket-core
-  new chipyard.config.AbstractConfig)
 
 class REFV256D256ShuttleVCU118Config extends Config(
   new WithFPGAFrequency(100) ++
