@@ -93,6 +93,12 @@ class RVDLARocketVCU118Config extends Config(
   new chipyard.RVDLARocketConfig
 )
 
+class RVDLARocketSmallVCU118Config extends Config(
+  new WithFPGAFrequency(100) ++
+  new WithVCU118Tweaks ++
+  new chipyard.RVDLARocketSmallConfig
+)
+
 class REFV256D256ShuttleVCU118Config extends Config(
   new WithFPGAFrequency(100) ++
   new WithVCU118Tweaks ++

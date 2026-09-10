@@ -48,6 +48,33 @@ class RVDLARocketConfig extends Config(
   new chipyard.config.AbstractConfig)
 
 
+class WithFP16FPUForSmallRocket extends freechips.rocketchip.rocket.RocketCoreConfig(
+  c => c.copy(
+    fpu = Some(
+      c.fpu
+        .getOrElse(freechips.rocketchip.tile.FPUParams())
+        .copy(minFLen = 16)
+    )
+  )
+)
+class RVDLARocketSmallConfig extends Config(
+  new rvdla.WithRVDLA ++
+  new freechips.rocketchip.rocket.WithoutVM ++
+  new freechips.rocketchip.rocket.WithL1DCacheSets(16) ++
+  new freechips.rocketchip.rocket.WithL1DCacheWays(4) ++
+  new freechips.rocketchip.rocket.WithL1ICacheSets(16) ++
+  new freechips.rocketchip.rocket.WithL1ICacheWays(4) ++
+  new chipyard.config.WithSystemBusWidth(256) ++
+  new chipyard.config.WithMemoryBusWidth(256) ++
+  new chipyard.config.WithInclusiveCacheWriteBytes(32) ++
+  new freechips.rocketchip.subsystem.WithInclusiveCache(capacityKB = 256) ++
+  new saturn.rocket.WithRocketVectorUnit(vLen = 128, dLen = 128, VectorParams.refParams, mLen = Option(64)) ++
+  new WithFP16FPUForSmallRocket ++
+  new freechips.rocketchip.rocket.WithNSmallCores(1) ++
+  new freechips.rocketchip.subsystem.WithCacheBlockBytes(128) ++
+  new chipyard.config.AbstractConfig)
+
+
 // MBUS/SBUS宽度256
 class RVDLASmallBoomConfig extends Config(
   new rvdla.WithRVDLA ++
